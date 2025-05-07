@@ -61,7 +61,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["produkty"])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webový obchod</title>
-    <link rel="stylesheet" href="style.css"> <!-- externí CSS soubor -->
+    <link rel="stylesheet" href=".css/styles.css"> <!-- externí CSS soubor -->
 </head>
 <body>
     <div class="container"> <!-- kontejner pro centrální zarovnání obsahu -->
@@ -84,7 +84,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["produkty"])) {
             </section>
         </main>
     </div>
-<h1>Webový obchod</h1>
 
 </body>
 </html>
