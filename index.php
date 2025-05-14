@@ -1,91 +1,52 @@
 <?php
-// Zobrazování chyb – užitečné při ladění
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+session_start();
+require_once ".php/db.php";
+require_once ".php/functions.php";
 
-//  připojení k databázi a načtení funkcí
-require_once ".php/db.php";        // připojen mysqli
-require_once ".php/funkce.php";    // vyhodnocení nákupu
+$conn = connectToDb();
 
-// SQL dotaz na všechny produkty z databáze
-$sql = "SELECT * FROM produkty";
-$result = $conn->query($sql);
+// Přidání do košíku
+if (isset($_POST['id']) && isset($_POST['mnozstvi'])) {
+    $id = $_POST['id'];
+    $mnozstvi = $_POST['mnozstvi'];
 
-// Pole – ukládáme všechny produkty z databáze
-$produkty = [];
-if ($result->num_rows > 0) {
-    // Cyklus while projde každý řádek a uloží ho do pole
-    while ($row = $result->fetch_assoc()) {
-        $produkty[] = $row;
+    if (!isset($_SESSION['kosik'])) $_SESSION['kosik'] = [];
+
+    if (isset($_SESSION['kosik'][$id])) {
+        $_SESSION['kosik'][$id] += $mnozstvi;
+    } else {
+        $_SESSION['kosik'][$id] = $mnozstvi;
     }
 }
 
-// Proměnné pro zpracování formuláře
-$vybrane = [];  // pole pro vybrané produkty z formuláře
-$soucet = 0;    // celková cena
-
-// kontrolujeme, zda byl odeslán formulář
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["produkty"])) {
-    $vybrane = $_POST["produkty"];  // pole s ID produktů
-
-    echo "<h2>Vybrané položky:</h2>";
-
-    // Cyklus foreach pro každé ID produktu
-    foreach ($vybrane as $id) {
-        $id = (int)$id;  // převod na int
-
-        // SQL dotaz na konkrétní produkt podle ID
-        $stmt = $conn->prepare("SELECT * FROM produkty WHERE id = ?"); // připraví SQL dotaz s ID
-        $stmt->bind_param("i", $id); // naváže proměnnou $id jako int 
-        $stmt->execute(); // spustí připravený SQL dotaz
-        $result = $stmt->get_result(); // získá výsledky z databáze
-        $produkt = $result->fetch_assoc(); 
-
-        // Zobrazení názvu a ceny produktu
-        if ($produkt) { 
-            echo htmlspecialchars($produkt["nazev"]) . " – " . $produkt["cena"] . " Kč<br>";
-            // Operátor sčítání – přičteme cenu produktu do celkové ceny
-            $soucet += $produkt["cena"]; // přičteme cenu produktu do celkové ceny
-        }
-    }
-
-    // Volání funkce pro vyhodnocení ceny (funkce je ve .php/funkce.php)
-    echo "<p><strong>Celková cena: $soucet Kč</strong></p>";
-    echo "<p><strong>" . zhodnotCenu($soucet) . "</strong></p>";
-}
+// Filtrování
+$kategorie = isset($_GET['kategorie']) ? $_GET['kategorie'] : "";
+$zbozi = getZbozi($conn, $kategorie);
 ?>
 
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webový obchod</title>
-    <link rel="stylesheet" href=".css/styles.css"> <!-- externí CSS soubor -->
+    <title>Jednoduchý obchod</title>
 </head>
 <body>
-    <div class="container"> <!-- kontejner pro centrální zarovnání obsahu -->
-        <header> <!-- hlavička stránky -->
-            <h1>Webový obchod</h1> <!-- název obchodu -->
-        </header>
-        <main> <!-- hlavní část stránky -->
-            <section> <!-- sekce pro produkty -->
-                <h2>Produkty</h2> <!-- nadpis sekce -->
-                <form method="post"> <!-- formulář pro výběr produktů -->
-                    <?php foreach ($produkty as $produkt): ?>      <!-- Cyklus foreach vypisuje všechny produkty z databáze -->
-                    <label>
-                        <!-- vytvoření checkboxu pro výběr produktu -->
-                        <input type="checkbox" name="produkty[]" value="<?= $produkt['id'] ?>"> <!-- Checkbox, hodnota je ID produktu -->
-                        <?= htmlspecialchars($produkt['nazev']) ?> – <?= htmlspecialchars($produkt['cena']) ?> Kč <!-- Zobrazení názvu a ceny produktu -->
-                    </label><br>
-                    <?php endforeach; ?>
-                    <button type="submit">Koupit</button> <!-- tlačítko pro odeslání formuláře -->
-                </form>
-            </section>
-        </main>
-    </div>
+    <h2>Filtr podle kategorie</h2>
+    <form method="get">
+        <select name="kategorie">
+            <option value="">Vše</option>
+            <option value="elektronika">Elektronika</option>
+            <option value="oblečení">Oblečení</option>
+        </select>
+        <button>Filtrovat</button>
+    </form>
 
+    <h2>Zboží</h2>
+    <ul>
+        <?php include "zbozi.php"; ?>
+    </ul>
+
+    <h2>Košík</h2>
+    <?php include "kosik.php"; ?>
 </body>
 </html>
-
-
